@@ -6,10 +6,9 @@ build:
     - "libglib2.0-0"
   python_packages:
     - "setuptools==50.3.1"
-    - "torch==1.7.1"
-    - "torchvision==0.8.2"
+    - "torch==1.8.0"
+    - "torchvision==0.9.0"
     - "torchbearer==0.5.3"
-    # - "lpips>=0.1.2"
     - "numpy==1.19.2"
     - "ipython==7.19.0"
     - "pillow==8.0.1"
