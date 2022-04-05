@@ -135,7 +135,7 @@ if state.summarizations_screen:
 if state.running_screen:
     summarizations_form.empty()
     clip_sim = predict(state.model, prompt=state.prompt, update={}, lines=state.lines, iters=state.iters)
-    st.success('Done, the clip similarity for a best image was: ' + str(clip_sim))
+    st.success(state.prompt+ ': done, the clip similarity for the best image was: ' + str(clip_sim))
     st.button("Try again", on_click=restart)
     st.stop()
 
