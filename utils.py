@@ -6,6 +6,19 @@ import os
 import shutil
 import stat
 import tempfile
+from subprocess import call
+import cv2
+import numpy as np
+
+
+def make_video(images, video_name):
+    out = cv2.VideoWriter('cv_video.avi',cv2.VideoWriter_fourcc(*'DIVX'), 30, (224, 224))
+    for img in images:
+        norm_image = cv2.normalize(img, None, alpha = 0, beta = 255, norm_type = cv2.NORM_MINMAX, dtype = cv2.CV_32F)
+        norm_image = norm_image.astype(np.uint8)
+        out.write(norm_image)
+    out.release()
+    call(["ffmpeg", "-y", "-i", "cv_video.avi", "-vcodec", "libx264", video_name])
 
 def copy_with_metadata(source, target):
     """Copy file with all its permissions and metadata.

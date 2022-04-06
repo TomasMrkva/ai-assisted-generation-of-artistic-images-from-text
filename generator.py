@@ -3,12 +3,11 @@ from IPython.core.pylabtools import figsize
 import torch
 import clip
 import torchvision.transforms as transforms
-from utils import save_img, nouns
+from utils import save_img, nouns, make_video
 from stqdm import stqdm
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
-import io
 
 from dsketch.experiments.imageopt.imageopt import make_init_params, clamp_params, clamp_colour_params, render
 
@@ -69,11 +68,11 @@ class Generator:
       return sigma2params, params, cparams
 
     def optimize(self, params, cparams, sigma2params, render_fn):
-      col1, col2, col3 = st.columns(3)
       img = st.empty()
-      graph = st.empty()
+      # graph = st.empty()
       predictions = st.empty()
       header = st.empty()
+      images = []
       losses = []
       min_loss = 10
       best_iter = 0
@@ -104,7 +103,7 @@ class Generator:
       color_optim = torch.optim.Adam([cparams], lr=args.colour_lr)
     
       #main optimisation loop
-      for i in stqdm(range(args.iters), desc="Generating an image for prompt: " + args.prompt, backend=True):
+      for i in stqdm(range(args.iters), desc=args.prompt + " ", backend=True):
           lss, NUM_AUGS, img_augs = 0, 4, []
           params_optim.zero_grad()
           sigma2_optim.zero_grad()
@@ -155,11 +154,14 @@ class Generator:
                       sigma2 = args.final_sigma2
 
               args.sigma2_current = sigma2
+          if i % 10 == 0:
+            ras = render_fn(params, cparams, sigma2)
+            images.append(ras.squeeze(0).permute(1, 2, 0).detach().cpu().numpy())
 
           if i % args.snapshots_steps == 0:
             ras = render_fn(params, cparams, sigma2)
             with torch.no_grad():
-              im = transforms.ToPILImage()(ras.detach().cpu().squeeze(0)).convert("RGB")
+              # im = transforms.ToPILImage()(ras.detach().cpu().squeeze(0)).convert("RGB")
               im_norm = image_features / image_features.norm(dim=-1, keepdim=True)
               noun_norm = self.nouns_features /self. nouns_features.norm(dim=-1, keepdim=True)
               similarity = (100.0 * im_norm @ noun_norm.T).softmax(dim=-1)
@@ -167,7 +169,8 @@ class Generator:
               predicts = ""
               for value, index in zip(values, indices):
                   predicts += f"{self.nouns[index]}: {100 * value.item():.2f}%"
-                  predicts += "\n"
+                  predicts += "\n"    
+            col1, col2, col3 = st.columns(3)
             with col1:
               header.empty()
               header = st.subheader('Predictions')
@@ -190,12 +193,15 @@ class Generator:
         ax.plot(np.linspace(1, len(losses), len(losses)), losses)
         plt.xlabel("iterations")
         plt.ylabel("- sum of cosine similarity of 4 augmented images")
-        graph = st.pyplot(fig)
+        st.pyplot(fig)
+      with col2:
+        # video = st.empty()
+        # video.empty()
+        make_video(images,'out.mp4')
+        video_file = open('out.mp4', 'rb')
+        video_bytes = video_file.read()
+        st.video(video_bytes)        
       return saved_image
-
-    import io
-    from PIL import Image
-    import matplotlib.pyplot as plt
 
     def r(self, p, cp, s):
       return 1-render(p, cp, s, self.grid, self.coordpairs, self.args)

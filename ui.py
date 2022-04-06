@@ -13,6 +13,7 @@ from time import sleep
 from os.path import exists
 from utils import atomic_write
 
+# st.set_page_config(layout="wide")
 
 hide_menu_style = """
         <style>
@@ -20,15 +21,15 @@ hide_menu_style = """
         </style> """
 st.markdown(hide_menu_style, unsafe_allow_html=True)
 
-st.header("Text-to-paiting/drawing generation")
-st.write("OpenAI's CLIP + Differential Drawing")
+header = st.empty()
+subheader = st.empty() 
 myform = st.empty()
 summarizations_form = st.empty()
 chart_checkbox = st.empty()
 
-@st.cache
-def load_clip():
-    state.model, _ = clip.load('ViT-B/32', torch.device('cuda'), jit=False)
+# @st.cache
+# def load_clip():
+#     state.model, _ = clip.load('ViT-B/32', torch.device('cuda'), jit=False)
 
 if 'checkbox_val' not in st.session_state:
     state.checkbox_val = False
@@ -40,13 +41,18 @@ if 'checkbox_val' not in st.session_state:
     state.summarizations_screen = False
     state.running_screen = False
     state.radiobox = ""
-    load_clip()
+    
+if 'model' not in st.session_state:
+    with st.spinner('Loading CLIP...'):
+      state.model, _ = clip.load('ViT-B/32', torch.device('cuda'), jit=False)
 
 def checkbox_click():
     state.checkbox_val = not state.checkbox_val
 
 def main_screen_submit(lines, iters, prompt, summarizations=False):
     chart_checkbox.empty()
+    header.empty()
+    subheader.empty()
     myform.empty()
     state.lines = lines
     state.iters = iters
@@ -59,6 +65,7 @@ def main_screen_submit(lines, iters, prompt, summarizations=False):
     main()
 
 def summarizations_screen_submit():
+    header.empty()
     state.main_screen = False
     state.summarizations_screen = False
     state.running_screen = True
@@ -66,6 +73,7 @@ def summarizations_screen_submit():
     main()
 
 def restart():
+    header.empty()
     state.prompt = ""
     state.main_screen = True
     main()
@@ -78,6 +86,8 @@ def main():
         state.running_screen = False
 
 if state.main_screen:
+    header.header("Text-to-paiting/drawing generation")
+    subheader.write("OpenAI's CLIP + Differentiable Drawing and Sketching")
     chart_checkbox.checkbox('Insert book paragraph or chapter', value=state.checkbox_val, on_change=checkbox_click)
     if state.checkbox_val:
         with myform.form(key='form-charts'):
@@ -112,6 +122,7 @@ if state.main_screen:
             main_screen_submit(lines, iters, prompt)
 
 if state.summarizations_screen:
+    header.subheader('LED-booksum + [T5-headline, YAKE, RAKE, KeyBERT]')
     with st.spinner('Generating the prompts from the text...'):
         atomic_write(state.prompt,'drive/MyDrive/3rd_yr_project/text_to_summarise.txt')
         while os.stat("drive/MyDrive/3rd_yr_project/prompts.json").st_size == 0:
@@ -134,8 +145,9 @@ if state.summarizations_screen:
 
 if state.running_screen:
     summarizations_form.empty()
+    header = st.header(state.prompt) 
     clip_sim = predict(state.model, prompt=state.prompt, update={}, lines=state.lines, iters=state.iters)
-    st.success(state.prompt+ ': done, the clip similarity for the best image was: ' + str(clip_sim))
+    st.success('Done, the clip similarity for the best image was: ' + str(clip_sim))
     st.button("Try again", on_click=restart)
     st.stop()
 
