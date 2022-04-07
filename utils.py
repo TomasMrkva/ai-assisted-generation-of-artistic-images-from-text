@@ -16,6 +16,7 @@ def make_video(images, video_name):
     for img in images:
         norm_image = cv2.normalize(img, None, alpha = 0, beta = 255, norm_type = cv2.NORM_MINMAX, dtype = cv2.CV_32F)
         norm_image = norm_image.astype(np.uint8)
+        norm_image = cv2.cvtColor(norm_image, cv2.COLOR_RGB2BGR)
         out.write(norm_image)
     out.release()
     call(["ffmpeg", "-y", "-i", "cv_video.avi", "-vcodec", "libx264", video_name])
